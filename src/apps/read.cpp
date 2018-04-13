@@ -18,6 +18,7 @@ using namespace std;
 using namespace arma;
 using namespace json11;
 
+
 int main() {
 
     ifstream jsonFile("morse.json");
@@ -40,41 +41,34 @@ int main() {
     uvec nr = ones<uvec>(mmax);
     fvec ri = ones<fvec>(mmax);
     fvec rf = ones<fvec>(mmax);
+    fvec Eie= ones<fvec>(mmax); 
     field<mat> hams(mmax);   // field for different nr in modes
     for (uword nmode=0;!mds[nmode].is_null();nmode++){
       nr[nmode] = mds[nmode]["nr"].int_value();
       ri[nmode] = mds[nmode]["ri"].number_value();
       rf[nmode] = mds[nmode]["rf"].number_value();
       ndim *= nr[nmode];
+      hams(nmode) = get_ham_1d(mds[nmode]);
+      Eie(nmode)  = get_energy(mds[nmode],ie);
       nmds++;
     }
     cout << "there are " << nmds << " modes" << '\n';
-/*    time_t sece=time(0);
-    tm *tf = localtime(&sece);
-    printf("Hamiltonian constructed: %02d:%02d:%02d\n",tf->tm_hour,tf->tm_min,tf->tm_sec);
-    int sparse = nonzeros(hamt).n_rows;
-    printf("Total nonzero: %12d\t Sparce: %6.4f\n",sparse,1.0*sparse/ndim/ndim);
-*/
+    mat vmn = zeros<mat>(nmds,nmds);// the couple coefficient, not consider now
+    printime("Begin loading wavefunction and energy:");
     mat wavefun;
-    vec energy ;
-    time_t secu=time(0);
-    tm *tu = localtime(&secu);
-    printf("Loading energy and wavefunction : %02d:%02d:%02d\n",tu->tm_hour,tu->tm_min,tu->tm_sec);
-    energy.load("energy.dat",raw_ascii);
     wavefun.load("wavefun.dat",raw_ascii);
+    vec energy ;
+    energy.load("energy.dat",raw_ascii);
+    printime("End loading wavefunction and energy:");
     for (uword m=0; m<ie; m++)
 	    cout << energy(m) <<'\n';
 
     /*
      * Truncate states and generate input 
      */
-    mat Psi(ne,ndim);
 // Label the states according to single mode H_s
-    ivec label = ones<ivec>(ne);
-    for(uword i=0; i<ne; i++){
-	for(uword m=0; m< nmds; m++){
-	    for(uword j=0; j< ndim; j++){
-		hams(m)
+    mat wavetrun = ones<mat>(ndim,1);
+    wave_trun(wavetrun,wavefun,nmds,ne,Eie,nr,ri,rf,vmn,hams);
     return 0;
 }
     

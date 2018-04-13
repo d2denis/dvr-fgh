@@ -23,3 +23,8 @@ uvec decode (int i_rank,const fvec cum_divd,const uvec cum_prod,const int nlen) 
     i_list(nlen-1) = i_rank;
     return i_list;
 }
+void printime(const std::string & strout){
+    time_t sec=time(0);
+    tm *t = localtime(&sec);
+    printf("%s %02d:%02d:%02d\n",strout.c_str(),t->tm_hour,t->tm_min,t->tm_sec);
+}

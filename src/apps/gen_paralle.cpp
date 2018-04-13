@@ -54,29 +54,17 @@ int main() {
     /*
      * Fourier Grid Hamiltonian
      */
-    time_t secb=time(0);
-    tm *ti = localtime(&secb);
-    printf("Begin Hamiltonian construction: %02d:%02d:%02d\n",ti->tm_hour,ti->tm_min,ti->tm_sec);
-    sp_mat hamt(ndim,ndim);
-    hamt = fgh_dvr(ndim,nmds,nr,ri,rf,vmn,hams);
-    time_t sece=time(0);
-    tm *tf = localtime(&sece);
-    printf("Hamiltonian constructed: %02d:%02d:%02d\n",tf->tm_hour,tf->tm_min,tf->tm_sec);
-    int sparse = nonzeros(hamt).n_rows;
+    printime("Begin Hamiltonian construction: ");
+    sp_mat hamt = fgh_dvr(ndim,nmds,nr,ri,rf,vmn,hams);
+    printime("Hamiltonian constructed: ");
+    int sparse = hamt.n_nonzero;
     printf("Total nonzero: %12d\t Sparce: %6.4f\n",sparse,1.0*sparse/ndim/ndim);
     mat wavefun;
     vec energy ;
     eigs_sym(energy,wavefun,hamt,ne,"sm",.000000000000000000000001);
-    time_t secu=time(0);
-    tm *tu = localtime(&secu);
-    printf("Diagonalized : %02d:%02d:%02d\n",tu->tm_hour,tu->tm_min,tu->tm_sec);
+    printime("Diagonalized :") ;
     energy.save("energy.dat",raw_ascii);
     wavefun.save("wavefun.dat",raw_ascii);
-    /*
-     * Read states and generate input 
-     */
-//    mat Psi(ie,ndim);
-// sort the state according to <X^2>
     return 0;
 }
     
