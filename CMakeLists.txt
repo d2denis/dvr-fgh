@@ -24,7 +24,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include
 link_directories(${PROJECT_SOURCE_DIR}/lib)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/deom)
-add_subdirectory(${PROJECT_SOURCE_DIR}/src/fgh)
 
 FILE(GLOB apps_src ${PROJECT_SOURCE_DIR}/src/apps/*.cpp)
 
@@ -50,7 +49,7 @@ endif()
 if (EXISTS ${PROJECT_SOURCE_DIR}/include/armadillo)
 else()
   ExternalProject_Add(armadillo
-    URL http://sourceforge.net/projects/arma/files/armadillo-8.400.0.tar.xz
+    URL armadillo-8.400.0.tar.xz
     PREFIX ${PROJECT_BINARY_DIR}/thirdparty
     INSTALL_DIR ${PROJECT_SOURCE_DIR}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
