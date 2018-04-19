@@ -9,6 +9,15 @@
 
 using namespace std;
 using namespace arma;
+double dotprod(vec a, vec b){
+    double result = 0.0;
+    vec::iterator j = b.begin();
+    for(vec::iterator i=a.begin();i<a.end();++i){
+        result += (*i)*(*j);
+        ++j;
+    }
+    return result;
+}
 
 double get_pot_1d (const double m0,const double de,const double beta,const double r0,const double r) {
     double morse = (1-exp(-beta*(r-r0)));
@@ -125,19 +134,20 @@ sp_mat dvr_fgh(const int nmds,const int loc,const uvec& cum, const uvec& nr,cons
 	uvec i_list(nmds);
         for(int i=0; i<nr(loc); i++){
 		i_list(loc) = i;
+                int num,n1,n2;
 		switch(nmds){
 			case 1:mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
 			       break;
 
-			case 2:int num = 1-loc;
+			case 2: num = 1-loc;
 			       for(int k=0; k<nr(num);++k){
 				   i_list(num)= k;
 				   mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
 			       }
 			       break;
 
-			case 3:int n1 = (loc+1)%3;
-			       int n2 = (loc+2)%3;
+			case 3: n1 = (loc+1)%3;
+			        n2 = (loc+2)%3;
 			       for(int k1=0; k1<nr(n1);++k1){
 			           for(int k2=0; k2<nr(n2);++k2){
 				       i_list(n1)= k1;
@@ -180,19 +190,20 @@ sp_mat fgh_dvr(const int ndim,const int nmds,const uvec& nr,const fvec& ri,const
         for(int i=0; i<nr(loc); i++){
 		i_list(loc)	= i;
 	        mat ham0 =	hams(loc);
+                int num,n1,n2;
 		switch(nmds){
 			case 1:mk_T(h_i,h_j,val,values,added,ham0,i_list,nr,cum_prod,loc,nmds);
 			       break;
 
-			case 2:int num = 1-loc;
+			case 2: num = 1-loc;
 			       for(int k=0; k<nr(num);++k){
 				   i_list(num)= k;
 				   mk_T(h_i,h_j,val,values,added,ham0,i_list,nr,cum_prod,loc,nmds);
 			       }
 			       break;
 
-			case 3:int n1 = (loc+1)%3;
-			       int n2 = (loc+2)%3;
+			case 3: n1 = (loc+1)%3;
+			        n2 = (loc+2)%3;
 			       for(int k1=0; k1<nr(n1);++k1){
 			           for(int k2=0; k2<nr(n2);++k2){
 				       i_list(n1)= k1;
@@ -225,7 +236,7 @@ void wave_trun(mat& wavetrun,const mat& wavefun, const uword nmds, const uword n
 		if(label(i)){
 		    vec Psi_i =  wavefun.col(i);
 		    mat wavepsi = ham*Psi_i;
-		    double E_i = dot(Psi_i,wavepsi);
+		    double E_i = dotprod(Psi_i,wavepsi);
 		    if (E_i > Eie(loc)*1.001)label(i)=0;
 		}
 	    }
