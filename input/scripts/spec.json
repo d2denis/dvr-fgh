@@ -1,0 +1,13 @@
+{
+   "spec": {
+	"nk": 32, 
+        "sdipFile": "inp_dip0.dat",
+        "bdipFile": "inp_bdip.mat",
+        "pdipFile": "inp_pdip.dat",
+        "w1max": 75,
+        "sch_hei": "s",
+        "dt": 0.002,
+        "nt1": 400, 
+        "staticErr": 2e-07
+    }
+}

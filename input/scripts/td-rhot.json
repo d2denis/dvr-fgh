@@ -1,0 +1,17 @@
+{
+    "td-rhot":{
+        "ti":-10,
+        "tf":30,
+        "nk": 32, 
+        "dt": 0.005, 
+        "sdipFile": "inp_dip0.dat", 
+        "pdipFile": "inp_pdip.dat", 
+        "bdipFile": "inp_bdip.dat", 
+        "pulse":{
+            "ampl":1.0,
+            "sigm":4.7,
+            "freq":2,
+            "varp":0
+        }
+    }
+}

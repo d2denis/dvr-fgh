@@ -36,5 +36,6 @@ double get_pot_2d (const double gxy,const double  x,const double  y);
 mat get_ham_1d(const Json m);
 sp_mat fgh_dvr(const int ndim,const int nmds,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams);
 void printime(const std::string & strout);
-void wave_trun(mat& wavetrun,const mat& wavefun, const uword nmds, const uword ne,const fvec& Eie,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams);
+void wave_trun(mat& wavetrun,const mat& wavefun,vec& energy, const vec& energr, const uword nmds, const uword ne,const fvec& Eie,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams);
+void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,const fvec& Eie,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams);
 #endif

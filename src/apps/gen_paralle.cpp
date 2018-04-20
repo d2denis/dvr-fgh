@@ -32,16 +32,16 @@ int main() {
         return 0;
     }
 
-    const int    ne = json["ne"].int_value();
-    const int    ie = json["ie"].int_value();
+    const uword    ne = json["ne"].int_value();
+    const uword    ie = json["ie"].int_value();
     const Json  mds = json["modes"];
-    int  nmds = 0;
-    int  ndim = 1;
+    uword  nmds = 0;
+    uword  ndim = 1;
     uvec nr = ones<uvec>(mmax);
     fvec ri = ones<fvec>(mmax);
     fvec rf = ones<fvec>(mmax);
     field<mat> hams(mmax);   // field for different nr in modes
-    for (int nmode=0;!mds[nmode].is_null();nmode++){
+    for (uword nmode=0;!mds[nmode].is_null();nmode++){
       nr[nmode] = mds[nmode]["nr"].int_value();
       ri[nmode] = mds[nmode]["ri"].number_value();
       rf[nmode] = mds[nmode]["rf"].number_value();
