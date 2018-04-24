@@ -1,0 +1,49 @@
+{
+    "ne":  30,
+    "ie":  2,
+    "modes": [
+        {
+            "m0": 1.000,
+            "ri": -1.5,
+            "rf":  8.5,
+            "de": 2500.000,
+            "be": 0.460000,
+            "re":  0.0,
+            "d1":  1.0,
+            "d2":   0.0,
+            "q1":   0.5,
+            "q2":   1.0,
+            "p1":  0.0,
+            "p2":  1,
+            "nr": 129,
+            "jdru": [{"lamd":80.0,"gamd":80.0}],
+            "jsdr": []
+        }
+    ],
+    "gxy": [
+        [0.0,  0.0],
+        [ 0.0, 0.0]
+    ],
+    "nonlinear":{
+                   "w1max": 2000.0, 
+                   "w2max": 2000.0, 
+                   "dt":  1.0, 
+                   "nt1": 52,
+                   "nt2": 52,
+                   "nk": 32,
+                   "staticErr": 2.0e-6,
+                    "sch_hei": "hei",
+                   "dip0": "inp_dip0.mat",
+                   "dip1": "inp_dip1.mat",
+                   "dip2": "inp_dip2.mat"
+    },
+    "linear": {
+        "nk": 32, 
+        "dip1": "inp_dip0.mat", 
+        "dip0": "inp_dip0.mat", 
+        "wmax": 390, 
+        "dt": 0.5, 
+        "nt": 1950, 
+        "staticErr": 2e-07
+    }
+}
