@@ -7,11 +7,6 @@
             "npsd": 1,
             "pade": 2,
             "temp": 300,
-            "jomg": [
-                [
-                    "jdru": [(0.5,0.5)],
-                ]
-            ],
 	    "modeFile": "inp_mode.mat",
 	    "etalFile": "inp_etal.mat",
 	    "etarFile": "inp_etar.mat",
