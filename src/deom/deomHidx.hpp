@@ -98,6 +98,26 @@ public:
         printf ("$InitHidx\n\n");
     }
 
+    hidx (const int lm, const int nm, const double err,const cx_vec expn_gam) {
+
+        expn = expn_gam;
+
+        nind = expn.n_rows;
+        lmax = lm;
+        nmax = nm;
+        ferr = err;
+        
+        nddo = 1;
+        lddo = 0;
+
+        keys.set_size(nmax);
+        keys(0) = hnod(0, zeros<ivec>(1));
+
+        tree.init(lmax+1);
+        if (!tree.try_insert(keys(0).key,0)) {
+            printf("Error in inserting first key to tree!\n");
+        }
+    }
     hidx (const hidx& rhs): nind(rhs.nind), lmax(rhs.lmax),nmax(rhs.nmax),
         lddo (rhs.lddo), nddo(rhs.nddo), ferr(rhs.ferr), keys(rhs.keys), 
         tree (rhs.tree), expn(rhs.expn) {}

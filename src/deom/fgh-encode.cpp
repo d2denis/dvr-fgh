@@ -295,3 +295,46 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
     wavetrun.save("wavetrun.dat",raw_ascii);
     energr.save("energr.dat",raw_ascii);
 }
+mat dipole(const vec& rx,const mat& wave ){
+    int ndim = wave.n_rows;
+    int ne = wave.n_cols;
+    mat dip(ne,ne);
+    if(rx.n_rows==ndim){
+	 for (int i=0;i<ne;i++){
+	    for (int j=0;j<ne;j++){
+		 double sumdim = 0.0;
+		 for (int n=0;n<ndim;n++){
+		    sumdim += rx(n)*wave(n,i)*wave(n,j);
+		 }
+		 dip(i,j) = sumdim;
+	    }
+        }
+    }else{
+        cout << rx.n_rows <<'\t' << ndim << endl;
+    }
+    return dip;
+}
+void qmod(cube& q1,cube& q2,const uvec& nr,const fvec& ri,const fvec& rf,const mat& wavefun){
+    uword nmds = nr.n_elem;
+    int ndim = wavefun.n_rows;
+    uword ne = wavefun.n_cols;
+    uvec cum_prod = zeros<uvec>(nmds);
+    cum_prod(0) = nr(nmds-1);
+    for (int m=1;m<nmds;m++)
+	    cum_prod(m) = cum_prod(m-1)*nr(nmds-m-1);
+    q1(ne,ne,nmds);
+    q2(ne,ne,nmds);
+    for (uword m=0;m<nmds;m++){
+	 vec x(ndim);
+	 vec x2(ndim);
+	 for (int i=0;i<ndim;i++){
+            uvec i_list = decode(i,cum_prod,nmds);
+            double    rx = ri(m)+i_list(m)*(rf(m)-ri(m))/nr(m);
+	    double   rx2 = rx*rx;
+	    x(i) = rx;
+	    x2(i)= rx2;
+	 }
+	 q1.slice(m) = dipole(x,wavefun);
+	 q2.slice(m) = dipole(x2,wavefun);
+    }
+}

@@ -14,10 +14,11 @@ int encode (const uvec i_list,const uvec cum_prod,const int nlen) {
     return i_rank;
 }
 //Decode should be accelerate.
-uvec decode (int i_rank,const fvec cum_divd,const uvec cum_prod,const int nlen) {
+//uvec decode (int i_rank,const fvec cum_divd,const uvec cum_prod,const int nlen) {
+uvec decode (int i_rank,const uvec cum_prod,const int nlen) {
     uvec i_list(nlen);
     for (int i=0; i<(nlen-1); ++i){
-        i_list(i)=floor(i_rank*cum_divd(nlen-i-2));
+        i_list(i)=i_rank/cum_prod(nlen-i-2);
         i_rank = i_rank-i_list(i)*cum_prod(nlen-i-2);
     }
     i_list(nlen-1) = i_rank;

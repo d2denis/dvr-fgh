@@ -59,12 +59,15 @@ int main() {
     wave_energy( wavefun, energy, nmds, ne,Eie,nr,ri, rf,vmn,hams);
     printime("End loading wavefunction and energy:");
 
-    fvec lamd,gamd,lams,gams;
     fvec q1(nmds);
     fvec q2(nmds);
+    vec lamd(nmds);
+    vec gamd(nmds);
     for (uword nmode=0;nmode<nmds;nmode++){
       q1[nmode] = mds[nmode]["q1"].number_value();
       q2[nmode] = mds[nmode]["q2"].number_value();
+      lamd[nmode] = mds[nmode][0]["lamd"].number_value();
+      gamd[nmode] = mds[nmode][0]["gamd"].number_value();
     }
     ifstream jsonFile2("default.json");
     stringstream strStream2;
@@ -76,14 +79,22 @@ int main() {
         printf ("Error in parsing input file: %s\n", err.c_str());
         return 0;
     }
-    const Json  mysyst = deft["syst"];
+//    const Json  mysyst = deft["syst"];
     const Json  mybath = deft["bath"];
     const Json  myhidx = deft["hidx"];
-    Json::object inidic = mybath;
-    inidic["jomg"]=Json::array{80,80};
-    inidic["nmod"]=nmds;
-    Json nimei = Json{inidic};
-    bath(nimei);
-	    cout << bath.modLabel.n_elem <<'\n';
+    int npsd = mybath["npsd"].int_value();
+    int pade = mybath["pade"].int_value();
+    double temp = mybath["npsd"].number_value();
+    int lmax = myhidx["lmax"].int_value();
+    int nmax = myhidx["nmax"].int_value();
+    double ferr = myhidx["ferr"].number_value();
+    cx_mat hm = deom_c1*diagmat(energy);
+    cx_cube qm =deom_c1*qmod(q1,q2,nr,ri,rf,wavefun);
+    syst s(hm,qm);
+
+    bath b(npsd,pade,temp,lamd,gamd);
+//        printime ("End parsing input file: ");
+	    
+    hidx h(lmax,nmax,ferr,b.expn_gam);
     return 0;
 }

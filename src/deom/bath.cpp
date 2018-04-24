@@ -10,12 +10,6 @@
 using namespace std;
 using namespace arma;
 
-double jwdru (double omg,vec jdru){
-    double lamda = jdru[0];
-    double gamma = jdru[1];
-    return 2.0*lamda*gamma*omg/(omg*omg+gamma*gamma);
-}
-
 double jwsdr (double omg,vec jdru){
     double lamda = jdru[0];
     double omega = jdru[1];
@@ -25,8 +19,8 @@ double jwsdr (double omg,vec jdru){
     return 2.0*lamda*omegamma*omega2/((omg*omg-omega2)*(omg*omg-omega2)+omegamma*omegamma);
 }
 
-double fBose(double x,vec& pole,vec& resi,double rn,double tn){
-        double sumpole = 0.0;
+cx_double fBose(cx_double x,vec& pole,vec& resi,double rn,double tn){
+        cx_double sumpole = 0.0;
         for (int i=0;i<pole.n_elem;i++)
             sumpole += 2.0*resi[i]*x/(x*x+pole[i]*pole[i]); 
 	return 1/x+0.5+rn*x+tn*x*x*x+sumpole;
