@@ -22,6 +22,10 @@ include_directories(${PROJECT_SOURCE_DIR}/include
                    )
 
 link_directories(${PROJECT_SOURCE_DIR}/lib)
+add_library(lapack SHARED IMPORTED)
+set_property(TARGET lapack PROPERTY IMPORTED_LOCATION "/usr/lib64/liblapack.so.3")
+add_library(blas SHARED IMPORTED)
+set_property(TARGET blas PROPERTY IMPORTED_LOCATION "/usr/lib64/libblas.so.3")
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/src/deom)
 
@@ -30,7 +34,7 @@ FILE(GLOB apps_src ${PROJECT_SOURCE_DIR}/src/apps/*.cpp)
 foreach (p ${apps_src})
     get_filename_component(p_bin ${p} NAME_WE)
     add_executable(${p_bin} ${p})
-    target_link_libraries(${p_bin} json11 openblas lapack armadillo fgh )
+    target_link_libraries(${p_bin} json11 blas lapack armadillo fgh )
 endforeach ()
 
 #enable_language(Fortran)
@@ -49,7 +53,7 @@ endif()
 if (EXISTS ${PROJECT_SOURCE_DIR}/include/armadillo)
 else()
   ExternalProject_Add(armadillo
-    URL armadillo-8.400.0.tar.xz
+    URL ../../../armadillo-8.400.0.tar.xz
     PREFIX ${PROJECT_BINARY_DIR}/thirdparty
     INSTALL_DIR ${PROJECT_SOURCE_DIR}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>

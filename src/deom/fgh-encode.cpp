@@ -260,12 +260,12 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
     ivec label = ones<ivec>(ne);
     uvec cum_prod = zeros<uvec>(nmds);
     cum_prod(0) = nr(nmds-1);
-    for (int m=1;m<nmds;m++)
+    for (uword m=1;m<nmds;m++)
 	    cum_prod(m) = cum_prod(m-1)*nr(nmds-m-1);
     sp_mat hamt(cum_prod(nmds-1),cum_prod(nmds-1));
     field<sp_mat> Hs(nmds);
 // batch insertion to accelerate sparce matrix construct 
-    for (int loc=0;loc<nmds;loc++){
+    for (uword loc=0;loc<nmds;loc++){
 	    mat ham0 = hams(loc);
 	    Hs(loc) = dvr_fgh(nmds,loc,cum_prod,nr,ri,rf,vmn,ham0);
 	    hamt += Hs(loc);
@@ -274,8 +274,8 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
     vec energy;
     eigs_sym(energy,wavefun,hamt,ne,"sm",.0000000001);
 
-    for (int loc=0;loc<nmds;loc++){
-	    for (int i=0;i<ne;i++){
+    for (uword loc=0;loc<nmds;loc++){
+	    for (uword i=0;i<ne;i++){
 		if(label(i)){
 		    vec Psi_i =  wavefun.col(i);
 		    mat wavepsi = Hs(loc)*Psi_i;
@@ -285,7 +285,7 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
 	    }
     }
     int wavecol = 0;
-    for(int i=0; i<ne; i++){
+    for(uword i=0; i<ne; i++){
 	if(label(i)){
 	    wavetrun.insert_cols(wavecol,wavefun.col(i));
 	    energr.insert_rows(wavecol,energy.row(i));
@@ -319,7 +319,7 @@ void qmod(cube& q1,cube& q2,const uvec& nr,const fvec& ri,const fvec& rf,const m
     uword ne = wavefun.n_cols;
     uvec cum_prod = zeros<uvec>(nmds);
     cum_prod(0) = nr(nmds-1);
-    for (int m=1;m<nmds;m++)
+    for (uword m=1;m<nmds;m++)
 	    cum_prod(m) = cum_prod(m-1)*nr(nmds-m-1);
     q1=zeros<cube>(ne,ne,nmds);
     q2=zeros<cube>(ne,ne,nmds);

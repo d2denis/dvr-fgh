@@ -1,0 +1,24 @@
+{
+	"syst": {
+	    "hamsFile": "inp_hams.mat",
+	    "qmdsFile": "inp_qmds.mat"
+	},
+	"bath": {
+            "npsd": 1,
+            "pade": 2,
+            "temp": 1,
+	    "modeFile": "inp_mode.mat",
+	    "etalFile": "inp_etal.mat",
+	    "etarFile": "inp_etar.mat",
+	    "etaaFile": "inp_etaa.mat",
+	    "expnFile": "inp_expn.mat",
+	    "bdipFile": "inp_bdip.mat",
+	    "delrFile": "inp_delr.mat"
+        },
+	"hidx": {
+		"lmax": 5,
+		"nmax": 5000,
+		"ferr": 2.0e-7,
+	    "expnFile": "inp_expn.mat"
+	}
+}
