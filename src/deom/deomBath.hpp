@@ -105,21 +105,21 @@ class bath {
 	    for (uword m=0;m< nmod; m++){
 	       for(uword idru=0;idru<1;idru++){
 		expn_gam(iind) = gamd(m);
-            	cx_double eta = -2*deom_ci*lamd(m)*gamd(m)*fBose(-1*deom_ci*gamd(m)/temp,pole,resi,rn,tn);
+            	cx_double eta = -2.0*deom_ci*lamd(m)*gamd(m)*fBose(-1.0*deom_ci*gamd(m)/temp,pole,resi,rn,tn);
             	coef_lft(iind) = eta;
                 coef_rht(iind) = conj(eta);
                 coef_abs(iind) = abs(eta);
-                delr(m) += 2*lamd(m)*gamd(m)/temp*rn;
+                delr(m) += 2.0*lamd(m)*gamd(m)/temp*rn;
 		iind++;
                }
 	       for(uword ipsd=0;ipsd<1;ipsd++){
 		expn_gam(iind) = pole(ipsd)*temp;
-		cx_double zomg = -1*deom_ci*expn_gam(iind);
+		cx_double zomg = -1.0*deom_ci*expn_gam(iind);
 		cx_double jsmd = 0;
 	       	for(uword idru=0;idru<1;idru++){
 			jsmd += jwdru(zomg,lamd(m),gamd(m));
                 }
-            	cx_double eta = -2*deom_ci*resi(ipsd)*temp*jsmd;
+            	cx_double eta = -2.0*deom_ci*resi(ipsd)*temp*jsmd;
             	coef_lft(iind) = eta;
                 coef_rht(iind) = conj(eta);
                 coef_abs(iind) = abs(eta);

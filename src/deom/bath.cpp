@@ -26,7 +26,7 @@ cx_double fBose(cx_double x,vec& pole,vec& resi,double rn,double tn){
         cx_double sumpole = 0.0;
         for (int i=0;i<pole.n_elem;i++)
             sumpole += 2.0*resi[i]*x/(x*x+pole[i]*pole[i]); 
-	return 1/x+0.5+rn*x+tn*x*x*x+sumpole;
+	return 1.0/x+0.5+rn*x+tn*x*x*x+sumpole;
 }
 vec mytrunc(const vec& input, int N){
     uword size = input.n_elem;

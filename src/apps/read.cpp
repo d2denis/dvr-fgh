@@ -67,8 +67,9 @@ int main() {
      * Truncate states and generate input 
      */
 // Label the states according to single mode H_s
-    mat wavetrun = ones<mat>(ndim,1);
-    wave_trun(wavetrun,wavefun,nmds,ne,Eie,nr,ri,rf,vmn,hams);
+    mat wavetrun;
+    vec energr;
+    wave_trun(wavetrun,wavefun,energr,energy,nmds,ne,Eie,nr,ri,rf,vmn,hams);
     return 0;
 }
     
