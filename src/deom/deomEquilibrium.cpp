@@ -14,7 +14,7 @@ static inline bool is_converge (const int n, const cx_cube& r1, const cx_cube &r
     for (int i=0; i<n; ++i) {
         const double tmp = max(vectorise(abs(r1.slice(i)-r2.slice(i))));
         if (tmp > err) {
-            printf("iado=%d, Error greater than %16.6e\n",i,tmp);
+//            printf("iado=%d, Error greater than %16.6e\n",i,tmp);
             return false;
         }
     }
@@ -49,9 +49,9 @@ void deom::equilibrium (cx_cube& ddos, const double dt, const double err, const 
     }
 
     if (it >= ntMax || !converge) {
-        printf ("Fail to reach equilibrium at error %16.6e\n", err);
+//        printf ("Fail to reach equilibrium at error %16.6e\n", err);
     } else {
-        printf ("Equilibrium reached with %d steps!\n", it);
+//        printf ("Equilibrium reached with %d steps!\n", it);
     } 
 
     fclose(frho);
