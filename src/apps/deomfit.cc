@@ -32,52 +32,28 @@ using namespace std;
 using namespace arma;
 using namespace json11;
 
-    const uword    nmds =1;
-    const uword    ne = 30;//
-    const uword    ie = 2;//
-    const int npsd = 2;//
-    const int pade = 2;//
-    const double temp = 9.5e-4;//
-    const int lmax = 5;//
-    const int nmax = 50;//
-    const double ferr = 2e-7;//my
-    const double w1_max = 0.01;//
-    const int    nt1 = 400;//
-    const int num_ob =nt1/2;
-    const double dt = 10.0;//
-    const double staticErr = 2e-7;//
-    const int    nk = 32;//
-    const string sch_hei = "s";//
-  const int  num_para = 4;
+static     const uword    nmds =2;
+static     const uword    ne = 200;//
+static     const uword    ie = 2;//
+/*
+static     const int npsd = 1;//
+static     const int pade = 2;//
+static     const double temp = 9.5e-4;//
+static     const int lmax = 5;//
+static     const int nmax = 100;//
+static     const double ferr = 2e-9;//
+static     const double w1_max = 0.01214;//
+static     const int    nt1 = 400;//
+static     const int num_ob =nt1/2;
+static     const double thedt = 10.0;//
+static     const double staticErr = 2e-5;//
+static     const int    nk = 32;//
+*/
+static     const int  num_para = 4;
+static     const int num_ob =200;
 
-mat matprod(cube a, vec b){
-    mat result = zeros<mat>(size(a.slice(0)));
-    uword nmds = b.n_elem;
-    for(uword i=0;i<nmds;++i){
-        result += a.slice(i)*b(i);
-    }
-    return result;
-}
-cube cubprod(cube a, vec b){
-    cube result = zeros<cube>(size(a));
-    uword nmds = b.n_elem;
 
-    for(uword i=0;i<nmds;++i){
-        result.slice(i) = a.slice(i)*b(i);
-    }
-    return result;
-}
-cube cubprod2(cube a, vec b){
-    cube result = zeros<cube>(size(a));
-    uword nmds = b.n_elem;
-
-    for(uword i=0;i<nmds;++i){
-        result.slice(i) = a.slice(i)*a.slice(i)*b(i);
-    }
-    return result;
-}
-
-int json2para(const uword nmds,double* d1,double* d2,double* p1,double* p2,double* q1,double* q2,double* gamd){
+int json2para(double* d1,double* d2,double* p1,double* p2,double* q1,double* q2,double* gamd){
     ifstream jsonFile("morse.json");
     stringstream strStream;
     strStream << jsonFile.rdbuf();
@@ -104,7 +80,7 @@ int json2para(const uword nmds,double* d1,double* d2,double* p1,double* p2,doubl
     }
     return 1;
 }
-int setjson(Json& mds,const uword nmds,vec& d1,vec& d2,vec& q1,vec& q2,vec& lamd,vec& gamd){
+int setjson(Json& mds,vec& d1,vec& d2,vec& q1,vec& q2,vec& lamd,vec& gamd){
     ifstream jsonFile("morse.json");
     stringstream strStream;
     strStream << jsonFile.rdbuf();
@@ -130,19 +106,21 @@ int setjson(Json& mds,const uword nmds,vec& d1,vec& d2,vec& q1,vec& q2,vec& lamd
     return 1;
 }
 
-void readinp(const Json mds,cx_mat& hm,cube& dip,cube& pol,const uword nmds=1){
+void readinp(const Json mds,cx_mat& hm,vec& q1,vec& q2,cube& dip,cube& pol){
     uword  ndim = 1;
     uvec nr (nmds);
     fvec ri (nmds);
     fvec rf (nmds);
     fvec Eie(nmds); 
-    field<mat> hams(mmax);   // field for different nr in modes
+    field<mat> hams(nmds);   // field for different nr in modes
     for (uword nmode=0;!mds[nmode].is_null();nmode++){
       nr[nmode] = mds[nmode]["nr"].int_value();
       ri[nmode] = mds[nmode]["ri"].number_value()*ar2unit;
       rf[nmode] = mds[nmode]["rf"].number_value()*ar2unit;
+//      q1[nmode] = mds[nmode]["q1"].number_value();
+//      q2[nmode] = mds[nmode]["q2"].number_value();
       ndim *= nr[nmode];
-      hams(nmode) = get_ham_1d(mds[nmode]); //immutable Json, ar2unit don't affect ri,rf
+      hams(nmode) = get_ham_1d(mds[nmode],q1[nmode],q2[nmode]); //immutable Json, ar2unit don't affect ri,rf
       Eie(nmode)  = get_energy(mds[nmode],ie);
     }
     mat vmn = zeros<mat>(nmds,nmds);// the couple coefficient, not consider now
@@ -151,63 +129,6 @@ void readinp(const Json mds,cx_mat& hm,cube& dip,cube& pol,const uword nmds=1){
     wave_energy( wavefun, energy, nmds, ne,Eie,nr,ri, rf,vmn,hams);
     hm = deom_c1*diagmat(energy);
     qmod(dip,pol,nr,ri,rf,wavefun,nmds);
-}
-void resp1 (vec& fw_im, const double w_max, const int mynt, const double dt,
-              const double staticErr, const int nk,
-              const mat& sdip, const cube& pdip, const vec& bdip,
-              const syst& s, const bath& b, const hidx& h) {
-
-    const double dw1 = w_max/mynt;
-    const double dt1 = 2.0*deom_pi/w_max;
-    const int    mt  = floor(dt1/dt);
-    const double dt1_res = dt1-dt*mt;
-
-    deom d1(s,b,h);
-
-    cx_cube rho_t0 = zeros<cx_cube>(d1.nsys,d1.nsys,d1.nmax);
-
-    const mat& exph= expmat(-real(d1.ham1)/d1.temperature);
-    rho_t0.slice(0).set_real(exph/trace(exph));
-    d1.equilibrium (rho_t0,dt,staticErr,nk);
-
-    cx_cube rho_t1 = zeros<cx_cube>(d1.nsys,d1.nsys,d1.nmax);
-    d1.oprAct(rho_t1,sdip,pdip,bdip,rho_t0,'c');
-
-    cx_vec ft = zeros<cx_vec>(mynt);
-
-        for (int it=0; it<mynt; ++it) {
-
-            ft(it) = deom_ci*d1.Trace(sdip,pdip,bdip,rho_t1);
-
-//            printf ("In sch-pic: it=%d, nddo=%d, lddo=%d\n", it, d1.nddo, d1.lddo);
-            double t1 = it*dt1;
-            for (int jt=0; jt<mt; ++jt) {
-                d1.rk4 (rho_t1,t1,dt);
-                t1 += dt;
-            }
-            d1.rk4 (rho_t1,t1,dt1_res);
-        }
-    ft(0) *= 0.0;//Infinity(nan) occur nddo>17, should be fixed
-    const cx_vec& fw = ifft(ft)*mynt*dt1;
-    fw_im = imag(fw.rows(0,mynt/2-1));
-}
-
-
-vec fit1d(const cx_mat& hm,const cube& dip,const cube& pol,vec d1,vec d2,vec q1,vec q2,vec lamd,vec gamd) {
-
-    cx_cube qm =deom_c1*(cubprod(dip,q1)+cubprod2(dip,q2));
-    syst s(hm,qm);
-    bath b(npsd,pade,temp,lamd,gamd);
-    cx_vec index = b.expn_gam;
-    hidx h(lmax,nmax,ferr,index);
-	    
-
-    mat  sdip = matprod(dip,d1)+matprod(pol,d2);;
-    cube pdip = zeros<cube>(size(qm));
-    vec  bdip = zeros<vec>(size(index));
-    vec  fw_im(num_ob);
-    resp1 (fw_im,w1_max, nt1, dt, staticErr, nk, sdip, pdip, bdip,  s, b, h);
-    return fw_im;
 }
 
 // Read a Brownian_oscillator Absorption Large dataset.
@@ -241,9 +162,11 @@ class BALProblem {
     num_parameters_ = nmds*num_para;
     parameters_ = new double[num_parameters_];
     double nimei[3];
-    json2para(nmds,parameters_,nimei,nimei,nimei,parameters_+nmds,parameters_+2*nmds,parameters_+3*nmds);
+    json2para(parameters_,nimei,nimei,nimei,parameters_+nmds,parameters_+2*nmds,parameters_+3*nmds);
     for (int i = 0; i < num_ob; ++i) {
+//        FscanfOrDie(fptr, "%lf", nimei  );
         FscanfOrDie(fptr, "%lf", observations_ + i );
+//        FscanfOrDie(fptr, "%lf", nimei  );
     }
 
     return true;
@@ -285,7 +208,7 @@ struct Resp1Residual {
   vec  q2(nmds);
   vec  lamd(nmds);
   vec  gamd(nmds);
-  if(setjson(mds,nmds,d1,d2,q1,q2,lamd,gamd)){
+  if(setjson(mds,d1,d2,q1,q2,lamd,gamd)){
 //parameter block
      d1=a2v(d);
      q1=a2v(q);
@@ -295,7 +218,7 @@ struct Resp1Residual {
 //system block
      cx_mat hm;
      cube dip, pol;
-     readinp(mds,hm,dip,pol,nmds);
+     readinp(mds,hm,q1,q2,dip,pol);
 
      vec fw_im(num_ob);
      vec nimei = fit1d(hm,dip,pol,d1,d2,q1,q2, lamd, gamd);
@@ -332,14 +255,15 @@ int main(int argc, char** argv) {
     std::cerr << "ERROR: number of parameter not match"  << "\n";
     return 1;
   }
-  std::cout <<bal_problem.num_parameters()<< " parameters, d: " << datax[0] << " q1: " << datax[1]<< " q2: " << datax[2]<< " gamd: " << datax[3]/cm2unit<< "\n";
+  std::cout <<bal_problem.num_parameters()<< " parametersa for mode 1, d: " << datax[0] << " q1: " << datax[2]<< " q2: " << datax[4]<< " gamd: " << datax[6]/cm2unit;
+  std::cout <<"  mode 2 parameters, d: " << datax[1] << " q1: " << datax[2]<< " q2: " << datax[5]<< " gamd: " << datax[7]/cm2unit<< "\n";
   Problem problem;
     problem.AddResidualBlock(
 //        new AutoDiffCostFunction<Resp1Residual, num_ob, 1>(
         new NumericDiffCostFunction<Resp1Residual,CENTRAL, num_ob, nmds,nmds,nmds,nmds>(
             new Resp1Residual(datay)),
         NULL,
-        datax,datax+1,datax+2,datax+3);
+        datax,datax+nmds,datax+2*nmds,datax+3*nmds);
 
   Solver::Options options;
   options.max_num_iterations = 500;
@@ -349,7 +273,9 @@ int main(int argc, char** argv) {
 
   Solver::Summary summary;
   Solve(options, &problem, &summary);
+  std::cout << summary.num_threads_given << '\t'<<  summary.num_threads_used << endl;
   std::cout << summary.BriefReport() << "\n";
-  std::cout << "Final   d: " << datax[0] << " q1: " << datax[1]<< " q2: " << datax[2]<< " gamd: " << datax[3]/cm2unit<< "\n";
+  std::cout << "Final mode 1  d: " << datax[0] << " q1: " << datax[2]<< " q2: " << datax[4]<< " gamd: " << datax[6]/cm2unit;
+  std::cout << "mode 2   d: " << datax[1] << " q1: " << datax[3]<< " q2: " << datax[5]<< " gamd: " << datax[7]/cm2unit<< "\n";
   return 0;
 }

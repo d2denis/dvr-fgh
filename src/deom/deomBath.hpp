@@ -82,7 +82,7 @@ class bath {
     bath (const int npsd, const int pade, const double temp,const vec& lamd,const vec& gamd) {
 
 	    int nind =0;
-	    int nmod = gamd.n_rows;
+	    uword nmod = gamd.n_rows;
 	    for (uword m=0;m< nmod; m++){
 		int ndru = 1;//special drue case
 		int nsdr = 0;

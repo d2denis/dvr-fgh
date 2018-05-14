@@ -19,14 +19,15 @@ double dotprod(vec a, vec b){
     return result;
 }
 
-double get_pot_1d (const double m0,const double de,const double beta,const double r0,const double r) {
+double get_pot_1d (double m0,double lamd,double q1,double q2,double de,double beta,double r0,double r) {
     double morse = (1-exp(-beta*(r-r0)));
-    return de*morse*morse;//+0.5*m0*lamd*(q1*r2*(1+0.5*q2*r2));
+    double vqr =  r*(q1+q2*r);
+    return de*morse*morse+0.5*lamd*vqr*vqr;//direct solve \Omega_H
 }
 double get_pot_2d (const double gxy,const double  x,const double  y) {
     return gxy*x*y*(x+y);
 }
-mat get_ham_1d(Json m){
+mat get_ham_1d(Json m,double q1,double q2){
       double  m0 = m["m0"].number_value()*am2unit;
       double  ri = m["ri"].number_value()*ar2unit;
       double  rf = m["rf"].number_value()*ar2unit;
@@ -41,6 +42,7 @@ mat get_ham_1d(Json m){
       double  dk = 2.0*deom_pi/(rf-ri);
       double ttmp= dk*dk/(2.0*m0);
       mat ham    = zeros<mat>(nr,nr);
+      double lamd = m["jdru"][0]["lamd"].number_value()*cm2unit;
       for(int i=0;i<nr;++i){
 	  for(int j=0;j<nr;++j){
               for(int k=0;k<nk;++k){
@@ -48,8 +50,8 @@ mat get_ham_1d(Json m){
 		  ham(i,j) += cos(tk)*ttmp*(k+1)*(k+1)*2.0/nr;
 	      }
 	  }
-//	  ham(i,i) += get_pot_1d(m0,m["jdru"],q1,q2,de,be,re,ri+i*dr);
-	  ham(i,i) += get_pot_1d(m0,de,be,re,ri+i*dr);
+	  ham(i,i) += get_pot_1d(m0,lamd,q1,q2,de,be,re,ri+i*dr);
+//	  ham(i,i) += get_pot_1d(m0,de,be,re,ri+i*dr);
       }
       return ham;
 }
@@ -62,8 +64,108 @@ double get_energy(Json m,uword ie){
       double  Ei = w_0*(ie+0.5)-w_x*(ie+0.5)*(ie+0.5);
       return Ei;
 }
+void mk_S(umat::row_iterator& h_i,umat::row_iterator& h_j, vec::iterator& val, const mat& ham0,const uvec& i_list,const uvec& nr,const uvec& cum,const int loc,const int nmds){
+    uword i = i_list(loc);
+    uword i_rank = encode(i_list,cum,nmds);
+	    (*h_i) = i_rank;
+	    (*h_j) = i_rank;
+	    (*val) = ham0(i,i);
+	    ++h_i;
+	    ++h_j;
+	    ++val;
+    for(uword j=i+1;j<nr(loc);++j){
+	  uvec j_list =i_list;
+	  j_list(loc) = j;
+	  int j_rank = encode(j_list,cum,nmds);
+	    *h_i = i_rank;
+	    *h_j = j_rank;
+	    *val = ham0(i,j);
+	    ++h_i;
+	    ++h_j;
+	    ++val;
+	    *h_i = j_rank;
+	    *h_j = i_rank;
+	    *val = ham0(i,j);
+	    ++h_i;
+	    ++h_j;
+	    ++val;
+    }
+}
+sp_mat dvr_fgh(const int nmds,const int loc,const uvec& cum, const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const mat& ham0){
+    uword ndim = cum(nmds-1);
+    uword nnz = ndim*nr(loc);
+    umat locations(2,nnz);
+    umat::row_iterator h_i = locations.begin_row(0);
+    umat::row_iterator h_j = locations.begin_row(1);
+    vec values(nnz);
+    vec::iterator val= values.begin();
+	uvec i_list(nmds);
+        for(uword i=0; i<nr(loc); i++){
+		i_list(loc) = i;
+                uword num,n1,n2;
+		switch(nmds){
+			case 1:mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
+			       break;
+
+			case 2: num = 1-loc;
+			       for(uword k=0; k<nr(num);++k){
+				   i_list(num)= k;
+				   mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
+			       }
+			       break;
+
+			case 3: n1 = (loc+1)%3;
+			        n2 = (loc+2)%3;
+			       for(uword k1=0; k1<nr(n1);++k1){
+			           for(uword k2=0; k2<nr(n2);++k2){
+				       i_list(n1)= k1;
+				       i_list(n2)= k2;
+				       mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
+			           }
+			       }
+		}
+	}
+    sp_mat hamt(locations,values);
+    return hamt;
+}
+//Truncate according to <E_n> of each mode
+/*
+void wave_trun(mat& wavetrun,const mat& wavefun,vec& energr, const vec& energy, const uword nmds, const uword ne,const fvec& Eie,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams){
+    if(nmds>3){
+	    cout << "too many modes\n";
+		 exit(EXIT_SUCCESS);
+    }
+    ivec label = ones<ivec>(ne);
+    uvec cum_prod = zeros<uvec>(nmds);
+    cum_prod(0) = nr(nmds-1);
+    for (uword m=1;m<nmds;m++)
+	    cum_prod(m) = cum_prod(m-1)*nr(nmds-m-1);
+// batch insertion to accelerate sparce matrix construct
+    for (uword loc=0;loc<nmds;loc++){
+	    mat ham0 = hams(loc);
+	    sp_mat ham = dvr_fgh(nmds,loc,cum_prod,nr,ri,rf,vmn,ham0);
+	    for (uword i=0;i<ne;i++){
+		if(label(i)){
+		    vec Psi_i =  wavefun.col(i);
+		    mat wavepsi = ham*Psi_i;
+		    double E_i = dotprod(Psi_i,wavepsi);
+		    if (E_i > Eie(loc)*1.001)label(i)=0;
+		}
+	    }
+    }
+    int wavecol = 0;
+    for(uword i=0; i<ne; i++){
+	if(label(i)){
+	    wavetrun.insert_cols(wavecol,wavefun.col(i));
+	    energr.insert_rows(wavecol,energy.row(i));
+	    wavecol++;
+	}
+    }
+    wavetrun.save("wavetrun.dat",raw_ascii);
+    energr.save("energr.dat",raw_ascii);
+}
+
 void mk_T(umat::row_iterator& h_i,umat::row_iterator& h_j, vec::iterator& val,vec& values, ivec& added, const mat& ham0,const uvec& i_list,const uvec& nr,const uvec& cum,const int loc,const int nmds){
-    int ndim = cum[nmds-1];
     int i = i_list(loc);
     uword i_rank = encode(i_list,cum,nmds);
     if(added(i_rank) > 0 ){
@@ -95,73 +197,6 @@ void mk_T(umat::row_iterator& h_i,umat::row_iterator& h_j, vec::iterator& val,ve
 	    ++val;
     }
 }
-void mk_S(umat::row_iterator& h_i,umat::row_iterator& h_j, vec::iterator& val, const mat& ham0,const uvec& i_list,const uvec& nr,const uvec& cum,const int loc,const int nmds){
-    int ndim = cum[nmds-1];
-    int i = i_list(loc);
-    uword i_rank = encode(i_list,cum,nmds);
-	    (*h_i) = i_rank;
-	    (*h_j) = i_rank;
-	    (*val) = ham0(i,i);
-	    ++h_i;
-	    ++h_j;
-	    ++val;
-    for(int j=i+1;j<nr(loc);++j){
-	  uvec j_list =i_list;
-	  j_list(loc) = j;
-	  int j_rank = encode(j_list,cum,nmds);
-	    *h_i = i_rank;
-	    *h_j = j_rank;
-	    *val = ham0(i,j);
-	    ++h_i;
-	    ++h_j;
-	    ++val;
-	    *h_i = j_rank;
-	    *h_j = i_rank;
-	    *val = ham0(i,j);
-	    ++h_i;
-	    ++h_j;
-	    ++val;
-    }
-}
-sp_mat dvr_fgh(const int nmds,const int loc,const uvec& cum, const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const mat& ham0){
-    uword ndim = cum(nmds-1);
-    uword nnz = ndim*nr(loc);
-    umat locations(2,nnz);
-    umat::row_iterator h_i = locations.begin_row(0);
-    umat::row_iterator h_j = locations.begin_row(1);
-    vec values(nnz);
-    vec::iterator val= values.begin();
-	uvec i_list(nmds);
-        for(int i=0; i<nr(loc); i++){
-		i_list(loc) = i;
-                int num,n1,n2;
-		switch(nmds){
-			case 1:mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
-			       break;
-
-			case 2: num = 1-loc;
-			       for(int k=0; k<nr(num);++k){
-				   i_list(num)= k;
-				   mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
-			       }
-			       break;
-
-			case 3: n1 = (loc+1)%3;
-			        n2 = (loc+2)%3;
-			       for(int k1=0; k1<nr(n1);++k1){
-			           for(int k2=0; k2<nr(n2);++k2){
-				       i_list(n1)= k1;
-				       i_list(n2)= k2;
-				       mk_S(h_i,h_j,val,ham0,i_list,nr,cum,loc,nmds);
-			           }
-			       }
-		}
-	}
-    sp_mat hamt(locations,values);
-    return hamt;
-}
-
-
 //Encode O(nr)^4 times, every steps counts.
 sp_mat fgh_dvr(const int ndim,const int nmds,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams){
     if(nmds>3){
@@ -217,41 +252,7 @@ sp_mat fgh_dvr(const int ndim,const int nmds,const uvec& nr,const fvec& ri,const
     sp_mat hamt(locations,values);
     return hamt;
 }
-//Truncate according to <E_n> of each mode
-void wave_trun(mat& wavetrun,const mat& wavefun,vec& energr, const vec& energy, const uword nmds, const uword ne,const fvec& Eie,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams){
-    if(nmds>3){
-	    cout << "too many modes\n";
-		 exit(EXIT_SUCCESS);
-    }
-    ivec label = ones<ivec>(ne);
-    uvec cum_prod = zeros<uvec>(nmds);
-    cum_prod(0) = nr(nmds-1);
-    for (int m=1;m<nmds;m++)
-	    cum_prod(m) = cum_prod(m-1)*nr(nmds-m-1);
-// batch insertion to accelerate sparce matrix construct
-    for (int loc=0;loc<nmds;loc++){
-	    mat ham0 = hams(loc);
-	    sp_mat ham = dvr_fgh(nmds,loc,cum_prod,nr,ri,rf,vmn,ham0);
-	    for (int i=0;i<ne;i++){
-		if(label(i)){
-		    vec Psi_i =  wavefun.col(i);
-		    mat wavepsi = ham*Psi_i;
-		    double E_i = dotprod(Psi_i,wavepsi);
-		    if (E_i > Eie(loc)*1.001)label(i)=0;
-		}
-	    }
-    }
-    int wavecol = 0;
-    for(int i=0; i<ne; i++){
-	if(label(i)){
-	    wavetrun.insert_cols(wavecol,wavefun.col(i));
-	    energr.insert_rows(wavecol,energy.row(i));
-	    wavecol++;
-	}
-    }
-    wavetrun.save("wavetrun.dat",raw_ascii);
-    energr.save("energr.dat",raw_ascii);
-}
+*/
 void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,const fvec& Eie,const uvec& nr,const fvec& ri,const fvec& rf,const mat& vmn,const field<mat>& hams){
     if(nmds>3){
 	    cout << "too many modes\n";
@@ -272,7 +273,7 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
     }
     mat wavefun;
     vec energy;
-    eigs_sym(energy,wavefun,hamt,ne,"sm",.0000000001);
+    eigs_sym(energy,wavefun,hamt,ne,"sm",1e-9);
 
     for (uword loc=0;loc<nmds;loc++){
 	    for (uword i=0;i<ne;i++){
@@ -284,7 +285,7 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
 		}
 	    }
     }
-    int wavecol = 0;
+    uword wavecol = 0;
     for(uword i=0; i<ne; i++){
 	if(label(i)){
 	    wavetrun.insert_cols(wavecol,wavefun.col(i));
@@ -292,18 +293,18 @@ void wave_energy(mat& wavetrun, vec& energr, const uword nmds, const uword ne,co
 	    wavecol++;
 	}
     }
-    wavetrun.save("wavetrun.dat",raw_ascii);
-    energr.save("energr.dat",raw_ascii);
+//    wavetrun.save("wavetrun.dat",raw_ascii);
+//    energr.save("energr.dat",raw_ascii);
 }
 mat dipole(const vec& rx,const mat& wave ){
-    int ndim = wave.n_rows;
-    int ne = wave.n_cols;
+    uword ndim = wave.n_rows;
+    uword ne = wave.n_cols;
     mat dip(ne,ne);
     if(rx.n_rows==ndim){
-	 for (int i=0;i<ne;i++){
-	    for (int j=0;j<ne;j++){
+	 for (uword i=0;i<ne;i++){
+	    for (uword j=0;j<ne;j++){
 		 double sumdim = 0.0;
-		 for (int n=0;n<ndim;n++){
+		 for (uword n=0;n<ndim;n++){
 		    sumdim += rx(n)*wave(n,i)*wave(n,j);
 		 }
 		 dip(i,j) = sumdim;
@@ -315,7 +316,7 @@ mat dipole(const vec& rx,const mat& wave ){
     return dip;
 }
 void qmod(cube& q1,cube& q2,const uvec& nr,const fvec& ri,const fvec& rf,const mat& wavefun,const uword nmds){
-    int ndim = wavefun.n_rows;
+    uword ndim = wavefun.n_rows;
     uword ne = wavefun.n_cols;
     uvec cum_prod = zeros<uvec>(nmds);
     cum_prod(0) = nr(nmds-1);
@@ -326,14 +327,14 @@ void qmod(cube& q1,cube& q2,const uvec& nr,const fvec& ri,const fvec& rf,const m
     for (uword m=0;m<nmds;m++){
 	 vec x(ndim);
 	 vec x2(ndim);
-	 for (int i=0;i<ndim;i++){
+	 for (uword i=0;i<ndim;i++){
             uvec i_list = decode(i,cum_prod,nmds);
             double    rx = ri(m)+i_list(m)*(rf(m)-ri(m))/nr(m);
-	    double   rx2 = rx*rx;
 	    x(i) = rx;
-	    x2(i)= rx2;
+	    x2(i)= rx*rx;
 	 }
 	 q1.slice(m) = dipole(x,wavefun);
-	 q2.slice(m) = dipole(x2,wavefun);
+//	 q2.slice(m) = dipole(x2,wavefun);
+	 q2.slice(m) = q1.slice(m)*q1.slice(m);
     }
 }
